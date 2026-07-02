@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        run: bun test
+
+  release:
+    name: Build and release binaries
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build release binaries
+        run: bun run build:release
+
+      - name: Package release binaries
+        run: |
+          tar -czf dist/slidenotes-macos-arm64.tar.gz -C dist slidenotes-macos-arm64
+          tar -czf dist/slidenotes-macos-x64.tar.gz -C dist slidenotes-macos-x64
+          zip -j dist/slidenotes-windows-x64.zip dist/slidenotes-windows-x64.exe
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "SlideNotes CLI release ${GITHUB_REF_NAME}" \
+            dist/slidenotes-macos-arm64.tar.gz#slidenotes-macos-arm64.tar.gz \
+            dist/slidenotes-macos-x64.tar.gz#slidenotes-macos-x64.tar.gz \
+            dist/slidenotes-windows-x64.zip#slidenotes-windows-x64.zip

@@ -1,1 +1,24 @@
-{ "dependencies": { "jszip": "^3.10.1", "pptxgenjs": "^3.12.0", "xml2js": "^0.6.2" } }
+{
+    "name": "slidenotes",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "packageManager": "bun@1.3.14",
+    "bin": {
+        "slidenotes": "./bin/slidenotes.js"
+    },
+    "scripts": {
+        "build": "bun build ./bin/slidenotes.js --compile --outfile dist/slidenotes",
+        "build:macos-arm64": "bun build ./bin/slidenotes.js --compile --target=bun-darwin-arm64 --outfile dist/slidenotes-macos-arm64",
+        "build:macos-x64": "bun build ./bin/slidenotes.js --compile --target=bun-darwin-x64 --outfile dist/slidenotes-macos-x64",
+        "build:windows-x64": "bun build ./bin/slidenotes.js --compile --target=bun-windows-x64 --outfile dist/slidenotes-windows-x64.exe",
+        "build:release": "bun run build:macos-arm64 && bun run build:macos-x64 && bun run build:windows-x64",
+        "generate:fixture": "bun scripts/generate-test-fixture.js",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "jszip": "^3.10.1",
+        "pptxgenjs": "^4.0.1",
+        "xml2js": "^0.6.2"
+    }
+}
