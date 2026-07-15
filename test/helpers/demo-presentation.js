@@ -1,5 +1,6 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import JSZip from "jszip";
 import pptxgen from "pptxgenjs";
 
 export const demoSlides = [
@@ -25,6 +26,18 @@ export const demoSlides = [
         notes: "",
     },
 ];
+
+// pptxgenjs ignores its `compression` option in Node, so rewrite the package
+// deflated to match how PowerPoint itself saves files.
+async function recompressPptx(pptxPath) {
+    const zip = await JSZip.loadAsync(await readFile(pptxPath));
+
+    await writeFile(pptxPath, await zip.generateAsync({
+        type: "nodebuffer",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+    }));
+}
 
 export async function writeDemoPresentationWithNotes(outputPath) {
     await mkdir(path.dirname(outputPath), { recursive: true });
@@ -79,6 +92,7 @@ export async function writeDemoPresentationWithNotes(outputPath) {
     }
 
     await pptx.writeFile({ fileName: outputPath });
+    await recompressPptx(outputPath);
 
     return outputPath;
 }

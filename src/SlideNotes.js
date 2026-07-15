@@ -131,6 +131,17 @@ async function removeRelationshipTypes(zip, relsFile, relationshipTypes) {
     writeZipXml(zip, relsFile, relsXml);
 }
 
+async function removeNotesMasterIdList(zip) {
+    const presentationXml = await parseZipXml(zip, "ppt/presentation.xml");
+
+    if (!presentationXml?.["p:presentation"]?.["p:notesMasterIdLst"]) {
+        return;
+    }
+
+    delete presentationXml["p:presentation"]["p:notesMasterIdLst"];
+    writeZipXml(zip, "ppt/presentation.xml", presentationXml);
+}
+
 async function removeNotesContentTypes(zip) {
     const contentTypesXml = await parseZipXml(zip, "[Content_Types].xml");
 
@@ -312,8 +323,13 @@ export default class SlideNotes {
             await removeRelationshipTypes(zip, relsFile, relationshipTypesToRemove);
         }
 
+        await removeNotesMasterIdList(zip);
         await removeNotesContentTypes(zip);
-        await writeFile(outputPath, await zip.generateAsync({ type: "nodebuffer" }));
+        await writeFile(outputPath, await zip.generateAsync({
+            type: "nodebuffer",
+            compression: "DEFLATE",
+            compressionOptions: { level: 6 },
+        }));
 
         return outputPath;
     }
