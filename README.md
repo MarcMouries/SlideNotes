@@ -2,9 +2,9 @@
 
 A tool for working with PowerPoint presentations.
 
-It can pull speaker notes out of a `.pptx` file into a readable text document, and it can create a copy of the deck with all speaker notes removed.
+It can pull speaker notes out of a `.pptx` file into a readable text document, apply an edited notes file back onto a deck, and create a copy of the deck with all speaker notes removed.
 
-It is useful when you want to review the talk track separately, share slides without private notes, or quickly check what is inside a presentation without opening PowerPoint.
+It is useful when you want to review or edit the talk track separately, share slides without private notes, or quickly check what is inside a presentation without opening PowerPoint.
 
 ## Using The CLI
 
@@ -17,10 +17,21 @@ bun link
 
 After this, run the CLI directly as `slidenotes`.
 
-Print the slide list:
+Print the slide list, marking slides that have speaker notes:
 
 ```bash
 slidenotes list path/to/input.pptx
+```
+
+```text
+Total slides: 4
+
+1: Opening — notes: 8 words
+2: Budget — notes: 6 words
+3: No title — notes: 9 words
+4: Appendix
+
+Notes on 3 of 4 slides.
 ```
 
 Export slide titles and speaker notes to a text file:
@@ -34,6 +45,20 @@ For `path/to/input.pptx`, this writes:
 ```text
 path/to/input-speaker-notes.txt
 ```
+
+Apply a notes text file back onto a presentation (the round trip of `export-notes`):
+
+```bash
+slidenotes import-notes path/to/input.pptx path/to/notes.txt
+```
+
+The notes file argument is optional and defaults to `path/to/input-speaker-notes.txt`, so `export-notes`, edit, `import-notes` works without extra arguments. For `path/to/input.pptx`, this writes:
+
+```text
+path/to/input-with-notes.pptx
+```
+
+For every `Slide #N` block in the file, the slide's notes are replaced with the block's text; an empty block clears that slide's notes. Slides not listed in the file are left untouched. Importing works even on decks whose notes parts were fully stripped by `remove-notes`. One caveat: a notes line that itself starts with `Slide #N:` is indistinguishable from a slide header, so avoid that pattern in notes text.
 
 Generate a copy of a presentation without speaker notes:
 
@@ -83,6 +108,7 @@ Try it with:
 ```bash
 slidenotes list ./test/fixture/simple-with-notes.pptx
 slidenotes export-notes ./test/fixture/simple-with-notes.pptx
+slidenotes import-notes ./test/fixture/simple-with-notes.pptx
 slidenotes remove-notes ./test/fixture/simple-with-notes.pptx
 ```
 
@@ -141,9 +167,14 @@ Release artifacts:
 - `slidenotes-macos-x64.tar.gz` for macOS Intel
 - `slidenotes-windows-x64.zip` for Windows x64
 
+## PowerPoint Compatibility
+
+SlideNotes rewrites `.pptx` packages, and PowerPoint enforces undocumented constraints that no schema validator catches. [docs/powerpoint-compatibility.md](docs/powerpoint-compatibility.md) records the repair-prompt bugs we hit, their root causes (including a subtle theme-sharing × element-order interaction), and how to debug this class of problem. Read it before changing any code that creates or removes package parts.
+
 ## Project Layout
 
-- `src/SlideNotes.js` - core PPTX reader, notes exporter, and notes remover
+- `src/SlideNotes.js` - core PPTX reader, notes exporter/importer, and notes remover
+- `src/notes-master-template.js` - known-good notes master XML used when importing into a deck without one
 - `src/index.js` - public export
 - `bin/slidenotes.js` - command-line entry point
 - `scripts/generate-test-fixture.js` - fixture generator

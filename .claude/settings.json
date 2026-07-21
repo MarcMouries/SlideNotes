@@ -1,0 +1,14 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(bun test)",
+            "Bash(bun test *)",
+            "Bash(bunx tsc *)",
+            "Bash(unzip -l *)",
+            "Bash(unzip -lv *)",
+            "Bash(unzip -q *)",
+            "Bash(unzip -o *)",
+            "Bash(xxd *)"
+        ]
+    }
+}

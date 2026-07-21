@@ -8,6 +8,7 @@ const PROGRESS_LABELS = {
     "read-file": "Reading file",
     "read-slides": "Reading slides",
     "export-notes": "Exporting notes",
+    "import-notes": "Importing notes",
 };
 
 class ProgressBar {
@@ -48,6 +49,7 @@ function printUsage() {
     console.error("Usage:");
     console.error("  slidenotes list <pptx file path>");
     console.error("  slidenotes export-notes <pptx file path>");
+    console.error("  slidenotes import-notes <pptx file path> [notes text file]");
     console.error("  slidenotes remove-notes <pptx file path>");
 }
 
@@ -63,6 +65,14 @@ function notesOutputPathFor(pptxPath) {
 
 function withoutNotesOutputPathFor(pptxPath) {
     return outputPathFor(pptxPath, "-without-notes", ".pptx");
+}
+
+function withNotesOutputPathFor(pptxPath) {
+    return outputPathFor(pptxPath, "-with-notes", ".pptx");
+}
+
+function notesWordCount(notes) {
+    return notes.trim().split(/\s+/).filter(Boolean).length;
 }
 
 const [command, ...args] = process.argv.slice(2);
@@ -87,13 +97,25 @@ async function printSlides(filePath) {
 
     console.log(`Total slides: ${slideCount}\n`);
 
+    let slidesWithNotes = 0;
+
     for (let i = 0; i < slideCount; i++) {
         const slide = pres.slides[i];
         const title = slide.getTitle();
         const slideNumber = String(i + 1).padStart(slideCountDigits, " ");
+        const wordCount = notesWordCount(slide.getNotes());
+        const notesLabel = wordCount > 0
+            ? ` — notes: ${wordCount} ${wordCount === 1 ? "word" : "words"}`
+            : "";
 
-        console.log(`${slideNumber}: ${title}`);
+        if (wordCount > 0) {
+            slidesWithNotes++;
+        }
+
+        console.log(`${slideNumber}: ${title}${notesLabel}`);
     }
+
+    console.log(`\nNotes on ${slidesWithNotes} of ${slideCount} slides.`);
 }
 
 try {
@@ -108,6 +130,16 @@ try {
 
         progressBar.finish();
         console.log(`Wrote slide notes to ${outputPath}`);
+    } else if (command === "import-notes" && (args.length === 1 || args.length === 2)) {
+        const notesPath = args[1] ?? notesOutputPathFor(args[0]);
+        const outputPath = withNotesOutputPathFor(args[0]);
+
+        await reader.importSlideNotesText(args[0], notesPath, outputPath, {
+            onProgress: (progress) => progressBar.update(progress),
+        });
+
+        progressBar.finish();
+        console.log(`Wrote presentation with notes to ${outputPath}`);
     } else if (command === "remove-notes" && args.length === 1) {
         const outputPath = withoutNotesOutputPathFor(args[0]);
 
@@ -119,6 +151,6 @@ try {
     }
 } catch (error) {
     progressBar.finish();
-    console.error("Error reading PowerPoint file:", error);
+    console.error("Error:", error.message ?? error);
     exit(1);
 }

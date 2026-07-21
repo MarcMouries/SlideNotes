@@ -1,1 +1,1 @@
-export { default, NO_TITLE } from "./SlideNotes.js";
+export { default, NO_TITLE, parseSpeakerNotesText } from "./SlideNotes.js";
